@@ -104,6 +104,10 @@ class ModbusEthDriver(weewx.drivers.AbstractDevice):
 
         self.station = ModbusEth(host, port)
 
+    @property
+    def hardware_name(self):
+        return DRIVER_NAME
+
     def closePort(self):
         self.station = None
 
