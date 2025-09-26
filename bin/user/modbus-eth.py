@@ -82,8 +82,8 @@ class ModbusEthConfEditor(weewx.drivers.AbstractConfEditor):
 """
 
     def prompt_for_settings(self):
-        print "Specify the host and port on which the station is connected, for"
-        print "example 192.168.1.100:502"
+        print("Specify the host and port on which the station is connected, for")
+        print("example 192.168.1.100:502")
         host = self._prompt('host', '192.168.1.100')
         port = self._prompt('port', 502)
         return {'host': host, 'port': port}
@@ -155,7 +155,7 @@ if __name__ == '__main__':
         (options, _) = parser.parse_args()
 
         if options.version:
-            print "ModbusEth driver version %s" % DRIVER_VERSION
+            print("ModbusEth driver version %s" % DRIVER_VERSION)
             exit(1)
 
         if options.debug is not None:
