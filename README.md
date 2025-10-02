@@ -18,7 +18,7 @@ Update your weewx.conf configuration file.
 Or launch this command
 
 ```bash
-weectl extension install https://github.com/FColinet/WeeWX-ModbusTCP-driver/archive/refs/heads/main.zip
+weectl extension install https://github.com/FColinet/WeeWX-ModbusTCP-driver/archive/refs/tags/1.1.zip
 ```
 
 ## WeeWX Configuration
@@ -38,27 +38,33 @@ In your weewx.conf file, add or modify the following stanza:
     # ------------------------------------------------------------------
     
     # Each [[sensor_<name>]] section defines a SINGLE Modbus request.
-    # WeeWX fields are extracted from the register block read.
+    #
+    # [[[<weewx packet name>]]] now supports 'data_type' (int16 or int32).
 
-    [[sensor_bme280]]
-        # Modbus REQUEST parameters:
-        slave_id = 10               # Modbus Slave Unit ID (1-247)
-        registry = 0                # Starting register address (0-based)
-        length = 3                  # Number of registers to read (e.g., 3)
-        
-        # Definition of WeeWX FIELDS extracted from the result:
-        
-        [[[outHumidity]]]
-            index = 0               # Position of the register in the read block (0-based)
-            scale = 0.1             # Multiplier for conversion (e.g., 255 -> 25.5)
-            
+    # Example 1: Standard 16-bit registers (Temperature, Humidity)
+    [[sensor_temp]]
+        slave_id = 1
+        registry = 0
+        length = 3
+
         [[[outTemp]]]
             index = 1
             scale = 0.1
-            
-        [[[pressure]]]
-            index = 2
-            scale = 1
+            # data_type defaults to int16
+
+        ...
+    
+    # Example 2: 32-bit register (Illumination/Radiation)
+    # Note: 'length' must be at least 2 for a 32-bit value.
+    [[sensor_light]]
+        slave_id = 1
+        registry = 2 
+        length = 2
+        
+        [[[radiation]]]
+            index = 0               # Starts at the first register of the 32-bit value
+            scale = 0.001           # E.g., for conversion (849011 -> 849.011)
+            data_type = int32       # Tells the driver to combine index 0 and 1
 ```
 
 ## License

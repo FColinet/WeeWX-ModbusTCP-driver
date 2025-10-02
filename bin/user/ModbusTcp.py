@@ -31,7 +31,7 @@ def _(s):
 
 DRIVER_NAME = 'ModbusTcp'
 DRIVER_DESC = 'Station with Modbus TCP gateway'
-DRIVER_VERSION = '1.0'
+DRIVER_VERSION = '1.1'
 
 
 def logmsg(dst, msg):
@@ -75,32 +75,46 @@ class ModbusTcpConfEditor(weewx.drivers.AbstractConfEditor):
     # ----------------------------------------------------
 
     #[[sensor_<name>]]
-    #    slave_id = <id of device> # Unit ID Modbus, 1-247
-    #    registry = <registry address> # Modbus Holding address or Input Register, often 0-based
-    #    length = <number of registers to read> # typically 1
+    #   slave_id = <id of device> # Unit ID Modbus, 1-247
+    #   registry = <registry address> # Modbus Holding address or Input Register, often 0-based
+    #   length = <number of registers to read> # typically 1
     #
-    #    [[[<weewx packet name>]]] # ex: outTemp, windSpeed, rain
-    #        index = <registry index> # often 0-based
-    #        scale = <multiplier value>
+    #   [[[<weewx packet name>]]] # ex: outTemp, windSpeed, radiation
+    #       index = <registry index> # often 0-based
+    #       scale = <multiplier value>
+    #       data_type = <int16 (default) or int32> # Required for 32-bit values
     #
-    # Example:
+    # Example 1: 16-bit registers (Temperature, Humidity, ...)
     #
     #[[sensor_bme280]]
-    #    slave_id = 10
-    #    registry = 0
-    #    length = 3
+    #   slave_id = 1
+    #   registry = 0
+    #   length = 3
     #
-    #    [[[outHumidity]]]
-    #        index = 0
-    #        scale = 0.1
+    #   [[[outHumidity]]]
+    #       index = 0
+    #       scale = 0.1
     #
-    #    [[[outTemp]]]
-    #        index = 1
-    #        scale = 0.1
+    #   [[[outTemp]]]
+    #       index = 1
+    #       scale = 0.1
     #
-    #    [[[pressure]]]
-    #        index = 2
-    #        scale = 1
+    #   [[[pressure]]]
+    #       index = 2
+    #       scale = 1
+    #
+    # Example 2: 32-bit register (Illumination/Radiation)
+    # Note: length must be at least 2 for a 32-bit read (2x 16-bit words).
+    #
+    #[[sensor_light]]
+    #   slave_id = 1
+    #   registry = 2 
+    #   length = 2
+    #
+    #   [[[radiation]]]
+    #       index = 0
+    #       scale = 0.001
+    #       data_type = int32
 """
 
     def prompt_for_settings(self):
@@ -156,7 +170,8 @@ class ModbusTcpDriver(weewx.drivers.AbstractDevice):
                         try:
                             fields[field_name] = {
                                 'index': int(field_conf.get('index', 0)),
-                                'scale': float(field_conf.get('scale', 1.0))
+                                'scale': float(field_conf.get('scale', 1.0)),
+                                'data_type': field_conf.get('data_type', 'int16')
                             }
                         except ValueError as e:
                             logerr(_(f"Configuration error for field {field_name} in {sensor_name}: index or scale is not a valid number. Error: {e}"))
@@ -182,6 +197,27 @@ class ModbusTcpDriver(weewx.drivers.AbstractDevice):
     def closePort(self):
         self.station = None
 
+    def _convert_value(self, values: list, field_conf: dict):
+        index = field_conf['index']
+        data_type = field_conf['data_type']
+
+        if data_type == 'int16':
+            return values[index]
+
+        elif data_type == 'int32':
+            if index + 1 >= len(values):
+                raise IndexError("32-bit read requires two registers, but only one is available from index.")
+
+            high_word = values[index]
+            low_word = values[index + 1]
+            
+            int_value = (high_word << 16) + low_word
+            return int_value
+
+        else:
+            logerr(_(f"Unsupported data type: {data_type}"))
+            return None
+
     def genLoopPackets(self):
         while True:
             pkt = dict()
@@ -193,9 +229,14 @@ class ModbusTcpDriver(weewx.drivers.AbstractDevice):
                 if values is not None:
                     for field_name, field_conf in sensor['fields'].items():
                         try:
-                            value = values[field_conf['index']] * field_conf['scale']
-                            pkt[field_name] = value
-                            logdbg(_(f"Field {field_name} (Index {field_conf['index']}) = {value}"))
+                            raw_value = self._convert_value(values, field_conf)
+
+                            if raw_value is not None:
+                                value = raw_value * field_conf['scale']
+                                pkt[field_name] = value
+                                logdbg(_(f"Field {field_name} (Index {field_conf['index']}) = {value} (Raw: {raw_value})"))
+                            # else: ignorer si la conversion a échoué (log fait dans _convert_value)
+
                         except IndexError:
                             logerr(_(f"Index {field_conf['index']} is out of bounds for the {len(values)} registers read."))
 
