@@ -1,5 +1,11 @@
 # Release Notes - WeeWX ModbusTcp Driver
 
+## 🐛 Version 1.1.1 - Fix Release: Logger
+
+**Release Date:** October 3, 2025
+
+Fix the log level error
+
 ## Version 1.1 - Feature Release: 32-bit Data Support
 
 **Release Date:** October 3, 2025

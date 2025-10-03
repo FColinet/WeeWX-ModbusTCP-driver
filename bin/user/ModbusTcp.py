@@ -13,7 +13,6 @@ pip install pymodbus
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
 
-import syslog
 import time
 
 import weewx
@@ -31,23 +30,31 @@ def _(s):
 
 DRIVER_NAME = 'ModbusTcp'
 DRIVER_DESC = 'Station with Modbus TCP gateway'
-DRIVER_VERSION = '1.1'
+DRIVER_VERSION = '1.1.1'
 
 
-def logmsg(dst, msg):
-    syslog.syslog(dst, 'ModbusTcp: %s' % msg)
-
-def logdbg(msg):
-    logmsg(syslog.LOG_DEBUG, msg)
-
-def loginf(msg):
-    logmsg(syslog.LOG_INFO, msg)
-
-def logcrt(msg):
-    logmsg(syslog.LOG_CRIT, msg)
-
-def logerr(msg):
-    logmsg(syslog.LOG_ERR, msg)
+try:
+    # weewx4 logging
+    import weeutil.logger
+    import logging
+    log = logging.getLogger(__name__)
+    def logdbg(msg):
+        log.debug(msg)
+    def loginf(msg):
+        log.info(msg)
+    def logerr(msg):
+        log.error(msg)
+except ImportError:
+    # old-style weewx logging
+    import syslog
+    def logmsg(level, msg):
+        syslog.syslog(level, 'ModbusTcp: %s' % msg)
+    def logdbg(msg):
+        logmsg(syslog.LOG_DEBUG, msg)
+    def loginf(msg):
+        logmsg(syslog.LOG_INFO, msg)
+    def logerr(msg):
+        logmsg(syslog.LOG_ERR, msg)
 
 
 def loader(config_dict, _):
