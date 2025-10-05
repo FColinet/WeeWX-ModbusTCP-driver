@@ -18,7 +18,7 @@ Update your weewx.conf configuration file.
 Or launch this command
 
 ```bash
-weectl extension install https://github.com/FColinet/WeeWX-ModbusTCP-driver/archive/refs/tags/1.1.zip
+weectl extension install https://github.com/FColinet/WeeWX-ModbusTCP-driver/archive/refs/tags/1.2.zip
 ```
 
 ## WeeWX Configuration

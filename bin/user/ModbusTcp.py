@@ -30,7 +30,7 @@ def _(s):
 
 DRIVER_NAME = 'ModbusTcp'
 DRIVER_DESC = 'Station with Modbus TCP gateway'
-DRIVER_VERSION = '1.1.1'
+DRIVER_VERSION = '1.2'
 
 
 try:
@@ -152,6 +152,8 @@ class ModbusTcpDriver(weewx.drivers.AbstractDevice):
 
         self.instruments = []
 
+        self.last_rain = None
+
         # ----------------------------------------------------------------------
         # Reading sensors defined in weewx.conf
         # ----------------------------------------------------------------------
@@ -229,7 +231,7 @@ class ModbusTcpDriver(weewx.drivers.AbstractDevice):
         while True:
             pkt = dict()
             pkt['dateTime'] = int(time.time() + 0.5)
-            pkt['usUnits'] = weewx.METRIC
+            pkt['usUnits'] = weewx.METRICWX
 
             for sensor in self.instruments:
                 values = getattr(self.station, 'get_values')(sensor['slave_id'], sensor['registry'], sensor['length'])
@@ -241,6 +243,9 @@ class ModbusTcpDriver(weewx.drivers.AbstractDevice):
                             if raw_value is not None:
                                 value = raw_value * field_conf['scale']
                                 pkt[field_name] = value
+                                if field_name == 'rain_total':
+                                    pkt['rain'] = calculate_rain(value, self.last_rain)
+                                    self.last_rain = value
                                 logdbg(_(f"Field {field_name} (Index {field_conf['index']}) = {value} (Raw: {raw_value})"))
                             # else: ignorer si la conversion a échoué (log fait dans _convert_value)
 
