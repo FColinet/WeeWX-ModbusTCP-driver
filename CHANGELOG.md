@@ -1,5 +1,9 @@
 # Release Notes - WeeWX ModbusTcp Driver
 
+## Version 1.2 - Feature Release: Rain Support
+
+- 
+
 ## 🐛 Version 1.1.1 - Fix Release: Logger
 
 **Release Date:** October 3, 2025
